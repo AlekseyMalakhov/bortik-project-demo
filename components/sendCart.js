@@ -20,6 +20,8 @@ const getPath = () => {
         console.log(envPath.demo);
         return envPath.dev;
     } else {
+        console.log(envPath.dev);
+        console.log(envPath.demo);
         return envPath.demo;
     }
     //for production
