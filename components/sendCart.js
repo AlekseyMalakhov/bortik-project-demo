@@ -1,13 +1,23 @@
 const nodemailer = require("nodemailer");
+const path = require("path");
 
+path.join(__dirname, "..", "import.xlsx");
+
+// const envPath = {
+//     dev: "../../mail_env/.env",
+//     demo: "../mail_env/.env",
+//     prod: "../mail_env/.env",
+// };
 const envPath = {
-    dev: "../../mail_env/.env",
-    demo: "../mail_env/.env",
-    prod: "../mail_env/.env",
+    dev: path.join(__dirname, "..", "..", "..", "mail_env", ".env"),
+    demo: path.join(__dirname, "..", "..", "mail_env", ".env"),
+    prod: path.join(__dirname, "..", "..", "mail_env", ".env"),
 };
 
 const getPath = () => {
     if (!process.env.NODE_ENV || process.env.NODE_ENV === "development") {
+        console.log(envPath.dev);
+        console.log(envPath.demo);
         return envPath.dev;
     } else {
         return envPath.demo;
@@ -16,9 +26,9 @@ const getPath = () => {
     // return settings.prod;
 };
 
-const path = getPath();
+const configPath = getPath();
 
-require("dotenv").config({ path: path });
+require("dotenv").config({ path: configPath });
 
 console.log(process.env.USER);
 console.log(process.env.SECRET);
