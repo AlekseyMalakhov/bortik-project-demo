@@ -1,7 +1,7 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config({ path: "../../project_env/.env" }); //just for dev environment
 const path = require("path");
-const db = require(path.join(__dirname, "..", "db", "queries"));
+const db = require(path.join(__dirname, "..", "db", "queries1"));
 
 let transporter = nodemailer.createTransport({
     host: "smtp-relay.sendinblue.com",
