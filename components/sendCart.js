@@ -1,11 +1,11 @@
 const db = require("../db/queries");
 const transporter = require("./nodeMailerClient");
 
-async function run(html, email, password) {
+async function run(html, email, orderID) {
     let info = await transporter.sendMail({
         from: '"Bortik Project" <cart@bortikproject.com>',
         to: email,
-        subject: "Bortik Project. Заказ №12345",
+        subject: "Bortik Project. Заказ №" + orderID,
         text: "Заказ в магазине Bortik Project успешно оформлен. Номер заказа 12345",
         html: html,
     });
@@ -31,9 +31,9 @@ const createRows = (cart) => {
     return str;
 };
 
-const createHTML = (data, password) => {
+const createHTML = (data, newUser, orderId) => {
     const part1 = `<p>Благодарим за покупку!</p>
-    <p>Заказ в магазине Bortik Project успешно оформлен. Номер заказа 12345</p>
+    <p>Заказ в магазине Bortik Project успешно оформлен. Номер заказа ${orderId}</p>
     <table style="font-family: sans-serif; width: 100%; border-collapse: collapse;">
     <tr>
         <th style="border: 1px solid black; padding: 5px 5px;">Номер</th>
@@ -58,11 +58,11 @@ const createHTML = (data, password) => {
         <p>Комментарий: ${data.customer.comment}</p>
         <p>Способ оплаты: ${data.customer.payment_method}</p>
         <p>Доставка: ${data.customer.delivery}</p>`;
-    const part4 = password
+    const part4 = newUser
         ? `
     <p>Просмотреть историю заказов Вы можете в Личном кабинете</p>
     <p>Login: ${data.customer.email}</p>
-    <p>Password: ${password}</p>
+    <p>Password: ${newUser.password}</p>
     `
         : "";
     const part5 = `
@@ -76,11 +76,22 @@ const createHTML = (data, password) => {
 
 const sendCart = async (req, res) => {
     const data = req.body;
-    const password = await db.createAccountAuto(req, res);
-    const html = createHTML(data, password);
-    run(html, data.customer.email)
+    let newUser;
+    let userID;
+    if (data.customer.id) {
+        userID = data.customer.id;
+    } else {
+        const user = await db.createAccountAuto(req, res);
+        if (user.new) {
+            newUser = user;
+        }
+        userID = user.id;
+    }
+    const orderID = await db.createOrder(req, res, userID);
+    const html = createHTML(data, newUser, orderID);
+    run(html, data.customer.email, orderID)
         .then(() => {
-            res.status(200).send(html);
+            res.status(200).send({ orderID });
         })
         .catch((err) => {
             res.status(500).send(err);

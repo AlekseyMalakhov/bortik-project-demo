@@ -1,6 +1,7 @@
 const Pool = require("pg").Pool;
 require("dotenv").config({ path: "../../project_env/.env" }); //just for dev environment
 const transporter = require("../components/nodeMailerClient");
+const format = require("pg-format");
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -20,13 +21,15 @@ const createAccountAuto = async (req, res) => {
         const existingUser = response1.rows[0];
         if (!existingUser) {
             const query2 = {
-                text: "INSERT INTO users (name, email, password, phone, address) VALUES($1, $2, $3, $4, $5) RETURNING password",
+                text: "INSERT INTO users (name, email, password, phone, address) VALUES($1, $2, $3, $4, $5) RETURNING *",
                 values: [name, email, "12345", phone, address],
             };
             const response2 = await pool.query(query2);
-            return response2.rows[0].password;
+            const newUser = response2.rows[0];
+            newUser.new = true;
+            return newUser;
         } else {
-            return null;
+            return existingUser;
         }
     } catch (error) {
         res.status(500).send(error.stack);
@@ -165,10 +168,79 @@ const forgotPassword = async (req, res) => {
     }
 };
 
+const createOrder = async (req, res, userID) => {
+    const { cart, date, priceType, sum } = req.body;
+
+    const arrData = [];
+    for (let i = 0; i < cart.length; i++) {
+        const item = [];
+        item.push(cart[i].article);
+        item.push(cart[i].title);
+        item.push(cart[i].number);
+        item.push(cart[i].price);
+        item.push(cart[i].sum);
+        item.push(userID);
+        item.push(date);
+        arrData.push(item);
+    }
+
+    try {
+        const sql = format("INSERT INTO sold_items (article, title, number, price, sum, customer_id, date) VALUES %L RETURNING id", arrData);
+        const response = await pool.query(sql);
+        if (response.rows.length > 0) {
+            const arrOfItemsId = response.rows.map((item) => item.id);
+            console.log(arrOfItemsId);
+
+            const query2 = {
+                text: "INSERT INTO orders (customer_id, date, price_type, items, sum) VALUES($1, $2, $3, $4, $5) RETURNING id",
+                values: [userID, date, priceType, arrOfItemsId, sum],
+            };
+            const response2 = await pool.query(query2);
+            return response2.rows[0].id;
+        }
+    } catch (error) {
+        res.status(500).send(error.stack);
+        console.log(error.stack);
+    }
+};
+
+const getHistory = async (req, res) => {
+    const { userID } = req.body;
+    const query1 = {
+        text: "SELECT * FROM orders WHERE customer_id = $1",
+        values: [userID],
+    };
+    try {
+        const response1 = await pool.query(query1);
+        const history = response1.rows;
+        const result = [];
+        await Promise.all(
+            history.map(async (order) => {
+                const query2 = {
+                    text: "SELECT * FROM sold_items WHERE id = ANY ($1)",
+                    values: [order.items],
+                };
+                const response2 = await pool.query(query2);
+                const items = response2.rows;
+                const newOrder = { ...order };
+                newOrder.items = items;
+                result.push(newOrder);
+            })
+        ).then(() => {
+            res.status(200).send(result);
+        });
+    } catch (error) {
+        res.status(500).send(error.stack);
+        console.log(error.stack);
+    }
+};
+
 module.exports = {
     createAccountAuto,
     createAccount,
     login,
     forgotPassword,
     editAccount,
+    createOrder,
+    getHistory,
 };
