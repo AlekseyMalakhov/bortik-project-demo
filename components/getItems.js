@@ -2,6 +2,7 @@ const XLSX = require("xlsx");
 const path = require("path");
 const fs = require("fs");
 const groupsFile = require("../groups");
+const translations = require("./getItemNamesTranslations");
 
 const generateListOfItems = () => {
     const buf = fs.readFileSync(path.join(__dirname, "..", "import.xlsx"));
@@ -44,11 +45,29 @@ if (data) {
     for (let i = 0; i < numberOfItems.length; i++) {
         const number = numberOfItems[i];
         if (data[`B${number}`] && data[`C${number}`]) {
+            const titleName = data[`C${number}`].v;
+
+            //check
+            if (!(titleName in translations.ru)) {
+                console.log(titleName);
+            }
+            if (!(titleName in translations.zh)) {
+                console.log(titleName);
+            }
+            if (!(titleName in translations.en)) {
+                console.log(titleName);
+            }
+            //end check
+
             const obj = {
                 id: data[`B${number}`].v + "_" + i,
                 category2: data[`A${number}`].v,
                 article: data[`B${number}`].v,
-                title: data[`C${number}`].v,
+                title: {
+                    ru: translations.ru[titleName],
+                    zh: translations.zh[titleName],
+                    en: translations.en[titleName],
+                },
                 presence: data[`D${number}`] ? data[`D${number}`].v : 0,
                 unit: data[`E${number}`].v,
                 img: data[`F${number}`] ? "https://smartikon.by/uploads/" + data[`F${number}`].v : "",
@@ -73,8 +92,6 @@ if (data) {
         }
     }
 }
-
-//console.log(items);
 
 const catalog = [];
 let id = 1;
