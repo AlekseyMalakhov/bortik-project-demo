@@ -2,19 +2,14 @@ const XLSX = require("xlsx");
 const path = require("path");
 const fs = require("fs");
 
-const CyrillicToTranslit = require("cyrillic-to-translit-js");
-const cyrillicToTranslit = new CyrillicToTranslit();
-
 const generateListOfItems = () => {
-    const buf = fs.readFileSync(path.join(__dirname, "..", "translations_items.xlsx"));
+    const buf = fs.readFileSync(path.join(__dirname, "..", "translations_for_ui.xlsx"));
     const list = XLSX.read(buf, { type: "buffer" });
     return list;
 };
 
 const workbook = generateListOfItems();
-const data = workbook.Sheets.Лист1;
-
-//console.log(workbook.Sheets.Лист1);
+const data = workbook.Sheets.Sheet1;
 
 const data2 = {};
 const regex = new RegExp("[A-Z]\\d*");
@@ -37,12 +32,9 @@ const zh = {};
 const en = {};
 
 for (let i = 2; i < numberOfRows; i++) {
-    // const key1 = cyrillicToTranslit.transform(data2[`A${i}`].v).toLowerCase();
-    // const key = key1.replace(/\s/g, "");
-    const key = data2[`A${i}`].v;
-    ru[key] = data2[`B${i}`].v;
-    zh[key] = data2[`C${i}`].v;
-    en[key] = data2[`D${i}`].v;
+    ru[data2[`A${i}`].v] = data2[`B${i}`].v;
+    zh[data2[`A${i}`].v] = data2[`C${i}`].v;
+    en[data2[`A${i}`].v] = data2[`D${i}`].v;
 }
 
 const result = {
@@ -51,8 +43,16 @@ const result = {
     en,
 };
 
-//console.log(ru);
-//console.log(zh);
+// console.log(ru);
+// console.log(zh);
 // console.log(en);
 
-module.exports = result;
+const getTranslationsForUI = (req, res) => {
+    if (result) {
+        res.send(result);
+    } else {
+        res.status(500).send("Server error - please contact administrator");
+    }
+};
+
+module.exports = getTranslationsForUI;
