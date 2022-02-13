@@ -1,4 +1,5 @@
 const pool = require("./pool");
+const bcrypt = require("bcrypt");
 
 const editAccount = async (req, res) => {
     const id = req.params.id;
@@ -11,15 +12,17 @@ const editAccount = async (req, res) => {
         };
         const response1 = await pool.query(query1);
         const userPassword = response1.rows[0].password;
-        if (userPassword !== password) {
+        const match = await bcrypt.compare(password, userPassword);
+        if (!match) {
             return res.status(401).send("Invalid password.");
         }
 
         let query;
         if (newPassword) {
+            const hash = await bcrypt.hash(newPassword, 10);
             query = {
                 text: "UPDATE users SET name = ($1), email = ($2), phone = ($3), address = ($4), password = ($6) WHERE id = ($5) RETURNING id",
-                values: [name, email, phone, address, id, newPassword],
+                values: [name, email, phone, address, id, hash],
             };
         } else {
             query = {

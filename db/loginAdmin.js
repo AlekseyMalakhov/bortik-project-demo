@@ -1,24 +1,27 @@
 const pool = require("./pool");
 const bcrypt = require("bcrypt");
 
-const login = async (req, res) => {
+const loginAdmin = async (req, res) => {
     const { email, password } = req.body;
+
+    // bcrypt.hash(password, 10, async function (err, hash) {
+    //     console.log(hash);
+    // });
+
     const query1 = {
-        text: "SELECT * FROM users WHERE email = $1",
+        text: "SELECT * FROM admins WHERE email = $1",
         values: [email],
     };
     try {
         const response1 = await pool.query(query1);
         const user = response1.rows[0];
+
         if (user) {
             bcrypt.compare(password, user.password, function (err, result) {
                 if (!result) {
                     return res.status(401).send("Invalid email or password.");
                 }
                 const sendUser = { ...user };
-                if (user.address) {
-                    sendUser.address = JSON.parse(user.address);
-                }
                 delete sendUser.password;
                 // const accessToken = jwt.sign(sendUser, accessTokenSecret, { expiresIn: "1m" });
                 // const refreshToken = jwt.sign(sendUser, refreshTokenSecret, { expiresIn: "100m" });
@@ -35,4 +38,4 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = login;
+module.exports = loginAdmin;
