@@ -21,6 +21,23 @@ const getAdminOrders = async (req, res) => {
                     return item;
                 });
 
+                //get all barcodes
+                const query4 = {
+                    text: "SELECT * FROM barcodes",
+                };
+                const response4 = await pool.query(query4);
+                const barcodes = response4.rows;
+
+                const itemsWithBarcodes = itemsWithImages.map((item) => {
+                    const barcodeObj = barcodes.find((bcObj) => bcObj.article === item.article);
+                    if (barcodeObj) {
+                        item.barcode = barcodeObj.barcode;
+                    } else {
+                        item.barcode = null;
+                    }
+                    return item;
+                });
+
                 const query3 = {
                     text: "SELECT name, email, phone FROM users WHERE id = $1",
                     values: [order.customer_id],
@@ -29,7 +46,7 @@ const getAdminOrders = async (req, res) => {
                 const user = response3.rows[0];
 
                 const newOrder = { ...order };
-                newOrder.items = itemsWithImages;
+                newOrder.items = itemsWithBarcodes;
                 newOrder.customer = user;
                 result.push(newOrder);
             })
